@@ -1,32 +1,10 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
+import useHandDetectionStore from "@/store/handDetection";
+import type { NormalizedLandmark } from "@/util/MediaPipe";
 
-// ─── Mock 21-point MediaPipe hand landmarks (normalized x, y) ───
-const BASE_LM: [number, number][] = [
-  [0.5, 0.7], // 0  wrist
-  [0.47, 0.62], // 1  thumb cmc
-  [0.44, 0.55], // 2  thumb mcp
-  [0.41, 0.49], // 3  thumb ip
-  [0.39, 0.44], // 4  thumb tip
-  [0.51, 0.55], // 5  index mcp
-  [0.52, 0.46], // 6  index pip
-  [0.53, 0.39], // 7  index dip
-  [0.54, 0.34], // 8  index tip
-  [0.56, 0.54], // 9  middle mcp
-  [0.58, 0.44], // 10 middle pip
-  [0.59, 0.37], // 11 middle dip
-  [0.6, 0.32], // 12 middle tip
-  [0.62, 0.55], // 13 ring mcp
-  [0.64, 0.45], // 14 ring pip
-  [0.65, 0.38], // 15 ring dip
-  [0.66, 0.33], // 16 ring tip
-  [0.67, 0.57], // 17 pinky mcp
-  [0.69, 0.49], // 18 pinky pip
-  [0.7, 0.43], // 19 pinky dip
-  [0.71, 0.38], // 20 pinky tip
-];
-
+// Standard MediaPipe Hands 21-point skeleton connections
 const CONNECTIONS: [number, number][] = [
   [0, 1],
   [1, 2],
@@ -54,20 +32,27 @@ const CONNECTIONS: [number, number][] = [
 ];
 
 interface CameraFeedProps {
-  handDetected: boolean;
   debugMode: boolean;
 }
 
-const CameraFeed = ({ handDetected, debugMode }: CameraFeedProps) => {
+const CameraFeed = ({ debugMode }: CameraFeedProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number>(0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handLandmarkerRef = useRef<any>(null);
+  const landmarksRef = useRef<NormalizedLandmark[][]>([]);
+  const lastVideoTimeRef = useRef<number>(-1);
+  const prevHandDetectedRef = useRef<boolean>(false);
+
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraFps, setCameraFps] = useState<number | null>(null);
   const onboardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { handDetected, setHandDetected } = useHandDetectionStore();
 
   // ─── Camera stream lifecycle ────────────────────────────────────
   useEffect(() => {
@@ -108,6 +93,40 @@ const CameraFeed = ({ handDetected, debugMode }: CameraFeedProps) => {
     };
   }, []);
 
+  // ─── MediaPipe HandLandmarker initialisation ───────────────────
+  useEffect(() => {
+    let cancelled = false;
+    async function initHandLandmarker() {
+      try {
+        const { FilesetResolver, HandLandmarker } =
+          await import("@mediapipe/tasks-vision");
+        const vision = await FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm",
+        );
+        const landmarker = await HandLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath:
+              "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+            delegate: "GPU",
+          },
+          runningMode: "VIDEO",
+          numHands: 2,
+        });
+        if (!cancelled) {
+          handLandmarkerRef.current = landmarker;
+        }
+      } catch (err) {
+        console.error("HandLandmarker init failed:", err);
+      }
+    }
+    initHandLandmarker();
+    return () => {
+      cancelled = true;
+      handLandmarkerRef.current?.close();
+      handLandmarkerRef.current = null;
+    };
+  }, []);
+
   // ─── Onboarding tooltip after 5 s without a hand ───────────────
   useEffect(() => {
     if (handDetected) {
@@ -121,75 +140,60 @@ const CameraFeed = ({ handDetected, debugMode }: CameraFeedProps) => {
     };
   }, [handDetected]);
 
-  // ─── Draw arrow helper ─────────────────────────────────────────
-  const drawArrow = (
-    ctx: CanvasRenderingContext2D,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    color: string,
-  ) => {
-    const angle = Math.atan2(y2 - y1, x2 - x1);
-    const headLen = 10;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(
-      x2 - headLen * Math.cos(angle - Math.PI / 6),
-      y2 - headLen * Math.sin(angle - Math.PI / 6),
-    );
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(
-      x2 - headLen * Math.cos(angle + Math.PI / 6),
-      y2 - headLen * Math.sin(angle + Math.PI / 6),
-    );
-    ctx.stroke();
-  };
-
   // ─── Main render loop ──────────────────────────────────────────
-  const draw = useCallback(
-    (time: number) => {
-      const canvas = canvasRef.current;
-      const container = containerRef.current;
-      if (!canvas || !container) return;
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    const video = videoRef.current;
+    if (!canvas || !container || !video) return;
 
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-      if (canvas.width !== w) canvas.width = w;
-      if (canvas.height !== h) canvas.height = h;
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
 
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.clearRect(0, 0, w, h);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, w, h);
 
-      if (!handDetected) return;
+    // Run detection when a new video frame is available
+    if (
+      handLandmarkerRef.current &&
+      video.readyState >= 2 &&
+      video.currentTime !== lastVideoTimeRef.current
+    ) {
+      lastVideoTimeRef.current = video.currentTime;
+      const result = handLandmarkerRef.current.detectForVideo(
+        video,
+        performance.now(),
+      );
+      landmarksRef.current = result.landmarks as NormalizedLandmark[][];
+      const detected = result.landmarks.length > 0;
+      if (detected !== prevHandDetectedRef.current) {
+        prevHandDetectedRef.current = detected;
+        setHandDetected(detected);
+      }
+    }
 
-      const t = time / 1000;
+    const allLandmarks = landmarksRef.current;
+    if (allLandmarks.length === 0 || !debugMode) return;
 
-      // Animate landmarks with subtle breathing motion
-      const lm = BASE_LM.map(([px, py], i) => ({
-        x: px * w + Math.sin(t * 0.9 + i * 0.45) * 3.5,
-        y: py * h + Math.cos(t * 0.7 + i * 0.35) * 3.5,
-      }));
+    allLandmarks.forEach((lm) => {
+      // Mirror X so the overlay matches the CSS-mirrored video element
+      const pts = lm.map((p) => ({ x: (1 - p.x) * w, y: p.y * h }));
 
       // Connections
       ctx.strokeStyle = "rgba(137, 206, 255, 0.45)";
       ctx.lineWidth = 1.5;
       CONNECTIONS.forEach(([a, b]) => {
         ctx.beginPath();
-        ctx.moveTo(lm[a].x, lm[a].y);
-        ctx.lineTo(lm[b].x, lm[b].y);
+        ctx.moveTo(pts[a].x, pts[a].y);
+        ctx.lineTo(pts[b].x, pts[b].y);
         ctx.stroke();
       });
 
       // Landmark dots
-      lm.forEach((pt, i) => {
+      pts.forEach((pt, i) => {
         const r = i === 0 ? 5 : 3.5;
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
@@ -199,8 +203,8 @@ const CameraFeed = ({ handDetected, debugMode }: CameraFeedProps) => {
       });
 
       // Bounding box
-      const xs = lm.map((p) => p.x);
-      const ys = lm.map((p) => p.y);
+      const xs = pts.map((p) => p.x);
+      const ys = pts.map((p) => p.y);
       const pad = 18;
       const bx = Math.min(...xs) - pad;
       const by = Math.min(...ys) - pad;
@@ -213,29 +217,28 @@ const CameraFeed = ({ handDetected, debugMode }: CameraFeedProps) => {
       ctx.strokeRect(bx, by, bw, bh);
       ctx.setLineDash([]);
 
-      // ─── Debug overlay: velocity vectors ──────────────────────
+      // ─── Debug overlay: wrist depth + landmark indices ─────────
       if (debugMode) {
-        const cx = bx + bw / 2;
-        const cy = by + bh / 2;
-        const vx = Math.sin(t) * 45;
-        const vy = Math.cos(t * 0.7) * 35;
-        drawArrow(ctx, cx, cy, cx + vx, cy + vy, "rgba(255, 185, 95, 0.9)");
-
+        const wrist = lm[0];
         ctx.fillStyle = "rgba(255, 185, 95, 0.85)";
         ctx.font = "11px Inter, sans-serif";
         ctx.fillText(
-          `dx: ${vx.toFixed(1)}  dy: ${vy.toFixed(1)}`,
+          `z: ${wrist.z.toFixed(3)}  x: ${wrist.x.toFixed(2)}  y: ${wrist.y.toFixed(2)}`,
           bx + 6,
           by - 8,
         );
+        pts.forEach((pt, i) => {
+          ctx.fillStyle = "rgba(255, 185, 95, 0.7)";
+          ctx.font = "9px Inter, sans-serif";
+          ctx.fillText(String(i), pt.x + 5, pt.y - 4);
+        });
       }
-    },
-    [handDetected, debugMode],
-  );
+    });
+  }, [debugMode, setHandDetected]);
 
   useEffect(() => {
-    const loop = (time: number) => {
-      draw(time);
+    const loop = () => {
+      draw();
       rafRef.current = requestAnimationFrame(loop);
     };
     rafRef.current = requestAnimationFrame(loop);
@@ -257,13 +260,14 @@ const CameraFeed = ({ handDetected, debugMode }: CameraFeedProps) => {
         className="relative rounded-3xl overflow-hidden aspect-video bg-surface-container-lowest
                    border border-outline-variant/15"
       >
-        {/* Live camera feed */}
+        {/* Live camera feed — mirrored so it feels like a selfie view */}
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
           className="absolute inset-0 w-full h-full object-cover"
+          style={{ transform: "scaleX(-1)" }}
         />
 
         {/* Fallback dark background shown when camera is unavailable */}

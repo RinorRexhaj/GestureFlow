@@ -42,11 +42,21 @@ const SensitivitySlider = ({
 const PillToggle = ({
   label,
   defaultOn = false,
+  checked,
+  onChange,
 }: {
   label: string;
   defaultOn?: boolean;
+  checked?: boolean;
+  onChange?: (value: boolean) => void;
 }) => {
-  const [on, setOn] = useState(defaultOn);
+  const [internal, setInternal] = useState(defaultOn);
+  const on = checked !== undefined ? checked : internal;
+  const toggle = () => {
+    const next = !on;
+    setInternal(next);
+    onChange?.(next);
+  };
   return (
     <label className="flex items-center justify-between group cursor-pointer">
       <span className="text-on-surface-variant group-hover:text-primary transition-colors duration-200 text-sm">
@@ -55,7 +65,7 @@ const PillToggle = ({
       <button
         role="switch"
         aria-checked={on}
-        onClick={() => setOn(!on)}
+        onClick={toggle}
         className={`relative w-10 h-5 rounded-full transition-all duration-300
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
                     ${on ? "bg-secondary-container" : "bg-surface-container-highest"}`}
@@ -71,7 +81,6 @@ const PillToggle = ({
 
 // ─── Page ───────────────────────────────────────────────────────
 const DashboardPage = () => {
-  const [handDetected, setHandDetected] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
   const [currentGesture, setCurrentGesture] = useState<GestureEntry | null>(
     null,
@@ -79,12 +88,7 @@ const DashboardPage = () => {
   const [gestureHistory, setGestureHistory] = useState<GestureEntry[]>([]);
   const [actionKey, setActionKey] = useState(0);
 
-  const handDetectedRef = useRef(handDetected);
   const gestureIndexRef = useRef(0);
-
-  useEffect(() => {
-    handDetectedRef.current = handDetected;
-  }, [handDetected]);
 
   return (
     <div className="relative">
@@ -108,7 +112,7 @@ const DashboardPage = () => {
         {/* ─── Left column ────────────────────────────────────── */}
         <section className="space-y-6 min-w-0">
           {/* Camera feed */}
-          <CameraFeed handDetected={handDetected} debugMode={debugMode} />
+          <CameraFeed debugMode={debugMode} />
 
           {/* Sensitivity + sensor controls */}
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -148,7 +152,11 @@ const DashboardPage = () => {
                 <PillToggle label="Swipe Detection" defaultOn={true} />
                 <PillToggle label="Pinch to Zoom" defaultOn={true} />
                 <PillToggle label="Hold & Drag" defaultOn={false} />
-                <PillToggle label="Debug Overlay" defaultOn={debugMode} />
+                <PillToggle
+                  label="Debug Overlay"
+                  checked={debugMode}
+                  onChange={setDebugMode}
+                />
               </div>
             </div>
           </div>
