@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Material Symbols ─── */
+.material-symbols-outlined {
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
+  user-select: none;
+}
+.material-symbols-filled {
+  font-variation-settings:
+    "FILL" 1,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
+}
+
+/* ─── Custom scrollbar ─── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(137, 206, 255, 0.2);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(137, 206, 255, 0.4);
+}
+
+/* ─── Global selection ─── */
+::selection {
+  background: rgba(137, 206, 255, 0.25);
+  color: #dae2fd;
+}
+
+/* ─── Range input thumb ─── */
+input[type="range"] {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: #2d3449;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #89ceff;
+  margin-top: -5px;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(137, 206, 255, 0.5);
+  transition: box-shadow 200ms ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 14px rgba(137, 206, 255, 0.8);
+}
+
+/* ─── Select reset ─── */
+select {
+  outline: none;
+  border: none;
+}
+select option {
+  background: #171f33;
+  color: #dae2fd;
+}
+
+/* ─── Kinetic gradient text utility ─── */
+@layer utilities {
+  .gradient-text {
+    background: linear-gradient(135deg, #89ceff 0%, #0ea5e9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
