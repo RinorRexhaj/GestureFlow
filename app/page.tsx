@@ -6,39 +6,6 @@ import GestureIntelligencePanel, {
   type GestureEntry,
 } from "@/components/GestureIntelligencePanel";
 
-// ─── Mock gesture data ──────────────────────────────────────────
-const MOCK_GESTURES: Omit<GestureEntry, "id" | "timestamp">[] = [
-  {
-    name: "Swipe Right",
-    icon: "swipe_right",
-    action: "Navigate Forward",
-    confidence: 97,
-  },
-  {
-    name: "Swipe Left",
-    icon: "swipe_left",
-    action: "Navigate Back",
-    confidence: 94,
-  },
-  { name: "Swipe Up", icon: "swipe_up", action: "Scroll Up", confidence: 91 },
-  {
-    name: "Swipe Down",
-    icon: "swipe_down",
-    action: "Scroll Down",
-    confidence: 89,
-  },
-  { name: "Pinch", icon: "pinch", action: "Zoom In", confidence: 88 },
-  { name: "Hold", icon: "back_hand", action: "System Pause", confidence: 100 },
-];
-
-let gestureSeq = 0;
-
-const makeEntry = (
-  base: Omit<GestureEntry, "id" | "timestamp">,
-): GestureEntry => {
-  return { ...base, id: `g-${++gestureSeq}`, timestamp: new Date() };
-};
-
 // ─── Sensitivity slider row ─────────────────────────────────────
 const SensitivitySlider = ({
   label,
@@ -105,7 +72,6 @@ const PillToggle = ({
 // ─── Page ───────────────────────────────────────────────────────
 const DashboardPage = () => {
   const [handDetected, setHandDetected] = useState(false);
-  const [fps, setFps] = useState(30.0);
   const [debugMode, setDebugMode] = useState(false);
   const [currentGesture, setCurrentGesture] = useState<GestureEntry | null>(
     null,
@@ -120,54 +86,17 @@ const DashboardPage = () => {
     handDetectedRef.current = handDetected;
   }, [handDetected]);
 
-  useEffect(() => {
-    // Simulate hand appearing after 2 s
-    const handTimer = setTimeout(() => setHandDetected(true), 2000);
-
-    // Mock gesture recognition every 3 s
-    const gestureInterval = setInterval(() => {
-      if (!handDetectedRef.current) return;
-      const base =
-        MOCK_GESTURES[gestureIndexRef.current % MOCK_GESTURES.length];
-      gestureIndexRef.current += 1;
-      const entry = makeEntry(base);
-      setCurrentGesture(entry);
-      setGestureHistory((prev) => [entry, ...prev].slice(0, 8));
-      setActionKey((k) => k + 1);
-    }, 3000);
-
-    // Simulate occasional hand loss
-    const detectionInterval = setInterval(() => {
-      if (Math.random() < 0.04) {
-        setHandDetected(false);
-        setTimeout(() => setHandDetected(true), 2500);
-      }
-    }, 4000);
-
-    // FPS simulation
-    const fpsInterval = setInterval(() => {
-      setFps(27 + Math.random() * 6);
-    }, 1000);
-
-    return () => {
-      clearTimeout(handTimer);
-      clearInterval(gestureInterval);
-      clearInterval(detectionInterval);
-      clearInterval(fpsInterval);
-    };
-  }, []);
-
   return (
     <div className="relative">
       {/* Page heading */}
-      <div className="mb-8">
+      {/* <div className="mb-8">
         <h1 className="font-headline text-4xl font-black text-on-surface tracking-tight leading-none">
           Live Dashboard
         </h1>
         <p className="text-on-surface-variant text-sm mt-2 font-body">
           Real-time gesture recognition — Kinetic Ether engine
         </p>
-      </div>
+      </div> */}
 
       {/*
        * Asymmetric two-column grid:
@@ -179,11 +108,7 @@ const DashboardPage = () => {
         {/* ─── Left column ────────────────────────────────────── */}
         <section className="space-y-6 min-w-0">
           {/* Camera feed */}
-          <CameraFeed
-            handDetected={handDetected}
-            debugMode={debugMode}
-            fps={fps}
-          />
+          <CameraFeed handDetected={handDetected} debugMode={debugMode} />
 
           {/* Sensitivity + sensor controls */}
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">

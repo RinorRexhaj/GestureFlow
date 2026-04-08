@@ -56,15 +56,57 @@ const CONNECTIONS: [number, number][] = [
 interface CameraFeedProps {
   handDetected: boolean;
   debugMode: boolean;
-  fps: number;
 }
 
-const CameraFeed = ({ handDetected, debugMode, fps }: CameraFeedProps) => {
+const CameraFeed = ({ handDetected, debugMode }: CameraFeedProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number>(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraFps, setCameraFps] = useState<number | null>(null);
   const onboardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ─── Camera stream lifecycle ────────────────────────────────────
+  useEffect(() => {
+    let active = true;
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "user",
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        });
+        console.log("Camera stream started:", stream);
+        if (!active) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+        const trackFps = stream.getVideoTracks()[0]?.getSettings().frameRate;
+        setCameraFps(trackFps ?? null);
+        setCameraError(null);
+      } catch (err) {
+        if (!active) return;
+        const msg = err instanceof Error ? err.message : "Camera unavailable";
+        setCameraError(msg);
+      }
+    }
+    startCamera();
+    return () => {
+      active = false;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    };
+  }, []);
 
   // ─── Onboarding tooltip after 5 s without a hand ───────────────
   useEffect(() => {
@@ -215,8 +257,40 @@ const CameraFeed = ({ handDetected, debugMode, fps }: CameraFeedProps) => {
         className="relative rounded-3xl overflow-hidden aspect-video bg-surface-container-lowest
                    border border-outline-variant/15"
       >
-        {/* Dark camera-room background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-surface-container-lowest via-[#08101e] to-surface-container-lowest" />
+        {/* Live camera feed */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+
+        {/* Fallback dark background shown when camera is unavailable */}
+        {cameraError && (
+          <div className="absolute inset-0 bg-gradient-to-br from-surface-container-lowest via-[#08101e] to-surface-container-lowest flex flex-col items-center justify-center gap-3">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-10 h-10 text-outline"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9A2.25 2.25 0 0013.5 5.25h-9A2.25 2.25 0 002.25 7.5v9A2.25 2.25 0 004.5 18.75z"
+              />
+            </svg>
+            <p className="text-sm text-on-surface-variant font-headline">
+              Camera access denied
+            </p>
+            <p className="text-xs text-outline text-center max-w-[200px]">
+              {cameraError}
+            </p>
+          </div>
+        )}
 
         {/* Subtle grid lines — AR aesthetic */}
         <div
@@ -266,7 +340,7 @@ const CameraFeed = ({ handDetected, debugMode, fps }: CameraFeedProps) => {
                          border border-outline-variant/15"
             >
               <span className="text-sm font-headline text-on-surface-variant uppercase tracking-tight tabular-nums">
-                FPS: {fps.toFixed(1)}
+                FPS: {cameraFps !== null ? cameraFps.toFixed(1) : "--"}
               </span>
             </div>
           </div>
