@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import useHandDetectionStore from "@/store/handDetection";
 
 const NAV_LINKS = [
   { label: "Dashboard", href: "/" },
@@ -16,6 +17,7 @@ interface NavbarProps {
 
 const Navbar = ({ onOpenSettings }: NavbarProps) => {
   const pathname = usePathname();
+  const { cameraEnabled, toggleCamera } = useHandDetectionStore();
 
   return (
     <nav
@@ -54,7 +56,11 @@ const Navbar = ({ onOpenSettings }: NavbarProps) => {
       {/* Right icon actions */}
       <div className="flex items-center gap-1">
         {[
-          { icon: "camera_alt", label: "Camera", onClick: undefined },
+          {
+            icon: cameraEnabled ? "camera_alt" : "no_photography",
+            label: cameraEnabled ? "Camera On" : "Camera Off",
+            onClick: toggleCamera,
+          },
           { icon: "settings", label: "Settings", onClick: onOpenSettings },
           { icon: "help", label: "Help", onClick: undefined },
         ].map(({ icon, label, onClick }) => (
@@ -62,7 +68,7 @@ const Navbar = ({ onOpenSettings }: NavbarProps) => {
             key={icon}
             onClick={onClick}
             aria-label={label}
-            className="p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20
+            className="p-2 flex justify-center items-center rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20
                        transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <span className="material-symbols-outlined">{icon}</span>

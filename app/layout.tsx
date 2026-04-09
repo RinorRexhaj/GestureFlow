@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
-import "./globals.css";
+import "./globals.css" with { type: "css" };
 import ShellClient from "@/components/ShellClient";
 
 const spaceGrotesk = Space_Grotesk({

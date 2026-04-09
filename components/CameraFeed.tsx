@@ -29,11 +29,20 @@ const CameraFeed = ({ debugMode }: CameraFeedProps) => {
   const [cameraReady, setCameraReady] = useState(false);
   const onboardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { handDetected, setHandDetected, setCurrentGesture } =
+  const { handDetected, setHandDetected, setCurrentGesture, cameraEnabled } =
     useHandDetectionStore();
 
   // ─── Camera stream lifecycle ────────────────────────────────────
   useEffect(() => {
+    if (!cameraEnabled) {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      setCameraReady(false);
+      setCameraFps(null);
+      setHandDetected(false);
+      setCurrentGesture(null);
+      return;
+    }
     let active = true;
     startCamera(
       active,
@@ -48,7 +57,7 @@ const CameraFeed = ({ debugMode }: CameraFeedProps) => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
-  }, []);
+  }, [cameraEnabled, setHandDetected, setCurrentGesture]);
 
   // ─── MediaPipe HandLandmarker initialisation ───────────────────
   useEffect(() => {
@@ -76,6 +85,7 @@ const CameraFeed = ({ debugMode }: CameraFeedProps) => {
 
   // ─── Main render loop ──────────────────────────────────────────
   const draw = useCallback(() => {
+    if (!cameraEnabled) return;
     drawLoop(
       canvasRef,
       containerRef,
@@ -88,7 +98,7 @@ const CameraFeed = ({ debugMode }: CameraFeedProps) => {
       setCurrentGesture,
       debugMode,
     );
-  }, [debugMode, setHandDetected]);
+  }, [debugMode, setHandDetected, cameraEnabled]);
 
   useEffect(() => {
     const loop = () => {
@@ -123,6 +133,21 @@ const CameraFeed = ({ debugMode }: CameraFeedProps) => {
           className="absolute inset-0 w-full h-full object-cover"
           style={{ transform: "scaleX(-1)" }}
         />
+
+        {/* Camera disabled overlay */}
+        {!cameraEnabled && (
+          <div className="absolute inset-0 bg-gradient-to-br from-surface-container-lowest via-[#08101e] to-surface-container-lowest flex flex-col items-center justify-center gap-3">
+            <span className="material-symbols-outlined text-outline text-5xl">
+              no_photography
+            </span>
+            <p className="text-sm text-on-surface-variant font-headline">
+              Camera is off
+            </p>
+            <p className="text-xs text-outline text-center max-w-[200px]">
+              Click the camera icon in the nav to turn it back on.
+            </p>
+          </div>
+        )}
 
         {/* Initializing overlay — shown while waiting for camera permission */}
         {!cameraReady && !cameraError && (
