@@ -82,13 +82,6 @@ const PillToggle = ({
 // ─── Page ───────────────────────────────────────────────────────
 const DashboardPage = () => {
   const [debugMode, setDebugMode] = useState(false);
-  const [currentGesture, setCurrentGesture] = useState<GestureEntry | null>(
-    null,
-  );
-  const [gestureHistory, setGestureHistory] = useState<GestureEntry[]>([]);
-  const [actionKey, setActionKey] = useState(0);
-
-  const gestureIndexRef = useRef(0);
 
   return (
     <div className="relative">
@@ -164,11 +157,7 @@ const DashboardPage = () => {
 
         {/* ─── Right column: Gesture Intelligence ─────────────── */}
         <section className="min-w-0">
-          <GestureIntelligencePanel
-            currentGesture={currentGesture}
-            gestureHistory={gestureHistory}
-            actionKey={actionKey}
-          />
+          <GestureIntelligencePanel />
         </section>
       </div>
     </div>

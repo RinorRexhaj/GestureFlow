@@ -312,3 +312,30 @@ export function handScale(landmarks: Landmarks): number {
     getLandmark(landmarks, LM.MIDDLE_MCP),
   );
 }
+
+export async function initHandLandmarker(
+  cancelled: boolean,
+  handLandmarkerRef: React.MutableRefObject<any>,
+) {
+  try {
+    const { FilesetResolver, HandLandmarker } =
+      await import("@mediapipe/tasks-vision");
+    const vision = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm",
+    );
+    const landmarker = await HandLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+        delegate: "GPU",
+      },
+      runningMode: "VIDEO",
+      numHands: 2,
+    });
+    if (!cancelled) {
+      handLandmarkerRef.current = landmarker;
+    }
+  } catch (err) {
+    console.error("HandLandmarker init failed:", err);
+  }
+}

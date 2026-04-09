@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import useHandDetectionStore from "@/store/handDetection";
 
 export interface GestureEntry {
   id: string;
@@ -9,15 +10,6 @@ export interface GestureEntry {
   action: string;
   confidence: number;
   timestamp: Date;
-}
-
-interface GestureIntelligencePanelProps {
-  currentGesture: GestureEntry | null;
-  gestureHistory: GestureEntry[];
-  /**
-   * Bumped by parent whenever a new gesture fires — triggers the flash animation.
-   */
-  actionKey: number;
 }
 
 const formatTime = (d: Date): string => {
@@ -29,12 +21,10 @@ const formatTime = (d: Date): string => {
   });
 };
 
-const GestureIntelligencePanel = ({
-  currentGesture,
-  gestureHistory,
-  actionKey,
-}: GestureIntelligencePanelProps) => {
+const GestureIntelligencePanel = () => {
   const [flashActive, setFlashActive] = useState(false);
+
+  const { currentGesture, gestureHistory, actionKey } = useHandDetectionStore();
 
   // Flash the action feed whenever a new action fires
   useEffect(() => {
@@ -55,62 +45,64 @@ const GestureIntelligencePanel = ({
           Detected Gesture
         </span>
 
-        {currentGesture ? (
-          <>
-            <div className="flex items-center gap-5 mb-6 relative z-10">
-              {/* Icon with radial pulse background */}
-              <div className="relative flex-shrink-0">
-                <div className="absolute inset-0 bg-primary/10 rounded-2xl animate-ar-pulse" />
-                <div className="relative w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <span
-                    className="material-symbols-outlined text-primary text-4xl"
-                    style={{ fontVariationSettings: "'FILL' 1" }}
-                  >
-                    {currentGesture.icon}
-                  </span>
+        <div className="h-36">
+          {currentGesture ? (
+            <>
+              <div className="flex items-center gap-5 mb-6 relative z-10">
+                {/* Icon with radial pulse background */}
+                <div className="relative flex-shrink-0">
+                  <div className="absolute inset-0 bg-primary/10 rounded-2xl animate-ar-pulse" />
+                  <div className="relative w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                    <span
+                      className="material-symbols-outlined text-primary text-4xl"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
+                      {currentGesture.icon}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="min-w-0">
+                  <h2 className="font-headline text-3xl font-black text-on-surface leading-tight truncate">
+                    {currentGesture.name}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span
+                      className="material-symbols-outlined text-secondary text-base"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
+                      verified
+                    </span>
+                    <span className="text-secondary font-medium text-sm tabular-nums">
+                      {currentGesture.confidence}% Confidence
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="min-w-0">
-                <h2 className="font-headline text-3xl font-black text-on-surface leading-tight truncate">
-                  {currentGesture.name}
-                </h2>
-                <div className="flex items-center gap-2 mt-1">
-                  <span
-                    className="material-symbols-outlined text-secondary text-base"
-                    style={{ fontVariationSettings: "'FILL' 1" }}
-                  >
-                    verified
-                  </span>
-                  <span className="text-secondary font-medium text-sm tabular-nums">
-                    {currentGesture.confidence}% Confidence
-                  </span>
-                </div>
+              {/* Triggered action row */}
+              <div
+                className={`p-4 bg-surface-container-low rounded-xl border border-outline-variant/10
+                            flex items-center justify-between gap-4 transition-colors duration-300
+                            ${flashActive ? "bg-secondary/10" : ""}`}
+              >
+                <span className="text-on-surface-variant text-sm">
+                  Action Triggered
+                </span>
+                <span className="px-3 py-1 bg-secondary/10 text-secondary rounded-xl text-xs font-headline font-bold uppercase flex-shrink-0">
+                  {currentGesture.action}
+                </span>
               </div>
-            </div>
-
-            {/* Triggered action row */}
-            <div
-              className={`p-4 bg-surface-container-low rounded-xl border border-outline-variant/10
-                          flex items-center justify-between gap-4 transition-colors duration-300
-                          ${flashActive ? "bg-secondary/10" : ""}`}
-            >
-              <span className="text-on-surface-variant text-sm">
-                Action Triggered
+            </>
+          ) : (
+            <div className="flex flex-col items-center py-8 text-on-surface-variant">
+              <span className="material-symbols-outlined text-4xl mb-3 opacity-40">
+                front_hand
               </span>
-              <span className="px-3 py-1 bg-secondary/10 text-secondary rounded-xl text-xs font-headline font-bold uppercase flex-shrink-0">
-                {currentGesture.action}
-              </span>
+              <p className="text-sm font-body">Waiting for gesture input…</p>
             </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center py-8 text-on-surface-variant">
-            <span className="material-symbols-outlined text-4xl mb-3 opacity-40">
-              front_hand
-            </span>
-            <p className="text-sm font-body">Waiting for gesture input…</p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* ── B. Gesture History ──────────────────────────────────── */}
@@ -152,53 +144,6 @@ const GestureIntelligencePanel = ({
                 </span>
               </div>
             ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── C. Actions Feed ─────────────────────────────────────── */}
-      <div className="bg-surface-container-low rounded-2xl p-5">
-        <h3 className="font-headline text-sm text-on-surface-variant mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-base text-on-surface-variant">
-            bolt
-          </span>
-          Actions Feed
-        </h3>
-
-        {currentGesture ? (
-          <div className="relative">
-            {/* Ping ring on new action */}
-            {flashActive && (
-              <span className="absolute inset-0 rounded-xl animate-ping bg-secondary/20 pointer-events-none" />
-            )}
-            <div
-              className={`rounded-xl px-4 py-3 flex items-center gap-4 transition-all duration-300
-                          ${flashActive ? "animate-action-flash bg-secondary/10" : "bg-surface-container"}`}
-            >
-              <span
-                className="material-symbols-outlined text-secondary text-xl flex-shrink-0"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                {currentGesture.icon}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-label font-semibold text-secondary truncate">
-                  {currentGesture.action}
-                </p>
-                <p className="text-xs text-on-surface-variant">
-                  {currentGesture.name}
-                </p>
-              </div>
-              <span className="text-[10px] font-headline uppercase text-on-surface-variant flex-shrink-0 tabular-nums">
-                {formatTime(currentGesture.timestamp)}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-4">
-            <p className="text-xs text-on-surface-variant">
-              No actions triggered yet
-            </p>
           </div>
         )}
       </div>

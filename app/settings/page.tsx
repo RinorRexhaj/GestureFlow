@@ -387,29 +387,6 @@ const SettingsPage = () => {
               </div>
             </div>
 
-            {/* Onboarding glassmorphic callout */}
-            <div
-              className="bg-surface-variant/40 backdrop-blur-xl px-5 py-4 rounded-2xl
-                         border border-primary/20 flex items-center gap-4"
-            >
-              <div className="w-10 h-10 border-2 border-primary/40 border-dashed rounded-full flex items-center justify-center flex-shrink-0 animate-pulse">
-                <span
-                  className="material-symbols-outlined text-primary text-xl"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  front_hand
-                </span>
-              </div>
-              <div>
-                <p className="text-sm font-headline text-primary font-semibold">
-                  Show your hand to start
-                </p>
-                <p className="text-xs text-on-surface-variant mt-0.5">
-                  Try swiping left / right once tracking is initialized.
-                </p>
-              </div>
-            </div>
-
             {/* Tutorial cards */}
             <div className="space-y-3 mt-2">
               {TUTORIALS.map((card) => (
