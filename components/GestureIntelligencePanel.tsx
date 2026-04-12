@@ -104,49 +104,6 @@ const GestureIntelligencePanel = () => {
           )}
         </div>
       </div>
-
-      {/* ── B. Gesture History ──────────────────────────────────── */}
-      <div className="bg-surface-container-low rounded-2xl p-5">
-        <h3 className="font-headline text-sm text-on-surface-variant mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-base text-on-surface-variant">
-            history
-          </span>
-          Gesture Timeline
-        </h3>
-
-        {gestureHistory.length === 0 ? (
-          <p className="text-xs text-on-surface-variant text-center py-4">
-            No gestures yet
-          </p>
-        ) : (
-          <div className="space-y-3 overflow-y-auto max-h-[260px] custom-scrollbar pr-1">
-            {gestureHistory.map((entry, idx) => (
-              <div
-                key={entry.id}
-                className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200
-                            ${idx === 0 ? "bg-surface-container-high" : "hover:bg-surface-container-high"}`}
-              >
-                <div className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center flex-shrink-0">
-                  <span className="material-symbols-outlined text-sm text-on-surface-variant">
-                    {entry.icon}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-on-surface truncate">
-                    {entry.name}
-                  </p>
-                  <p className="text-xs text-on-surface-variant truncate">
-                    {entry.action}
-                  </p>
-                </div>
-                <span className="text-[10px] font-headline uppercase text-on-surface-variant tabular-nums flex-shrink-0">
-                  {formatTime(entry.timestamp)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 };

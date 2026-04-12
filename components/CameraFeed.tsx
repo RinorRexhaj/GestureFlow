@@ -29,8 +29,23 @@ const CameraFeed = ({ debugMode }: CameraFeedProps) => {
   const [cameraReady, setCameraReady] = useState(false);
   const onboardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { handDetected, setHandDetected, setCurrentGesture, cameraEnabled } =
-    useHandDetectionStore();
+  const lastActionGestureRef = useRef<string>("");
+  const lastActionTimeRef = useRef<number>(0);
+
+  const {
+    handDetected,
+    setHandDetected,
+    setCurrentGesture,
+    cameraEnabled,
+    addGestureToHistory,
+    setActionKey,
+    actionKey,
+  } = useHandDetectionStore();
+
+  const actionKeyRef = useRef<number>(actionKey);
+  useEffect(() => {
+    actionKeyRef.current = actionKey;
+  }, [actionKey]);
 
   // ─── Camera stream lifecycle ────────────────────────────────────
   useEffect(() => {
@@ -97,6 +112,11 @@ const CameraFeed = ({ debugMode }: CameraFeedProps) => {
       setHandDetected,
       setCurrentGesture,
       debugMode,
+      addGestureToHistory,
+      setActionKey,
+      actionKeyRef,
+      lastActionGestureRef,
+      lastActionTimeRef,
     );
   }, [debugMode, setHandDetected, cameraEnabled]);
 

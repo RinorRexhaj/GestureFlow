@@ -1,6 +1,7 @@
 import { detectGesture } from "./detectGesture";
 import { NormalizedLandmark } from "./MediaPipe";
 import { GestureEntry } from "@/components/GestureIntelligencePanel";
+import { executeGestureAction, GESTURE_ACTION_COOLDOWN_MS } from "./actions";
 
 // Standard MediaPipe Hands 21-point skeleton connections
 const CONNECTIONS: [number, number][] = [
@@ -40,6 +41,11 @@ export const drawLoop = (
   setHandDetected: (detected: boolean) => void,
   setCurrentGesture: (gesture: GestureEntry | null) => void,
   debugMode: boolean,
+  addGestureToHistory: (gesture: GestureEntry) => void,
+  setActionKey: (key: number) => void,
+  actionKeyRef: React.RefObject<number>,
+  lastActionGestureRef: React.RefObject<string>,
+  lastActionTimeRef: React.RefObject<number>,
 ) => {
   const canvas = canvasRef.current;
   const container = containerRef.current;
@@ -72,6 +78,27 @@ export const drawLoop = (
     setHandDetected(detected);
     const gesture = detectGesture(result.landmarks);
     setCurrentGesture(gesture);
+
+    // Execute browser action with debounce
+    if (gesture) {
+      const now = performance.now();
+      const isNewGesture = gesture.name !== lastActionGestureRef.current;
+      const cooldownElapsed =
+        now - lastActionTimeRef.current > GESTURE_ACTION_COOLDOWN_MS;
+
+      if (isNewGesture || cooldownElapsed) {
+        const fired = executeGestureAction(gesture.name);
+        if (fired) {
+          lastActionGestureRef.current = gesture.name;
+          lastActionTimeRef.current = now;
+          addGestureToHistory(gesture);
+          setActionKey((actionKeyRef.current ?? 0) + 1);
+        }
+      }
+    } else {
+      // Reset tracked gesture when hand is no longer showing a known gesture
+      lastActionGestureRef.current = "";
+    }
   }
 
   drawLandmarks(landmarksRef, ctx, w, h, debugMode);
