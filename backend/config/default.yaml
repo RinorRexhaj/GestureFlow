@@ -1,0 +1,38 @@
+dataset:
+  sequence_length: 32
+  num_hands: 1
+  # Overlap between consecutive sequences during recording (0 = no overlap)
+  recording_overlap: 0
+
+model:
+  hidden_size: 128
+  num_layers: 2
+  bidirectional: false
+  dropout: 0.3
+
+training:
+  batch_size: 32
+  learning_rate: 0.001
+  epochs: 50
+  val_split: 0.2
+  # Set to null to disable early stopping
+  early_stopping_patience: 10
+  # Seed for reproducible train/val splits
+  random_seed: 42
+
+inference:
+  # Minimum softmax confidence to emit a prediction
+  confidence_threshold: 0.6
+  # auto | cpu | cuda
+  device: auto
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  # Comma-separated list; override via ALLOWED_ORIGINS env var
+  allowed_origins: "http://localhost:3000,http://127.0.0.1:3000"
+
+paths:
+  datasets_dir: datasets
+  saved_models_dir: saved_models
+  logs_dir: logs
