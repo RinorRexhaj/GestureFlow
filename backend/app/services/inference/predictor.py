@@ -16,6 +16,7 @@ import torch
 
 from app.models.lstm_model import GestureLSTM
 from app.utils.config import AppConfig, ModelConfig, get_config
+from app.utils.movement import has_sufficient_movement
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +173,11 @@ class GesturePredictor:
         """
         if self._model is None:
             raise RuntimeError("No model is loaded. Call `load()` first.")
+
+        if not has_sufficient_movement(
+            sequence, peak_threshold=self._cfg.inference.movement_threshold
+        ):
+            return "no_gesture", 0.0, {}
 
         seq = self._prepare_sequence(sequence)
         x = torch.tensor(seq, dtype=torch.float32).unsqueeze(0).to(self._device)

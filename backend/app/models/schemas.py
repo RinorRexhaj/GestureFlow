@@ -21,15 +21,15 @@ class TrainRequest(BaseModel):
         "gesture_model",
         description="Logical name for the saved model artefact.",
     )
-    hidden_size: Optional[int] = Field(None, gt=0)
-    num_layers: Optional[int] = Field(None, gt=0)
-    bidirectional: Optional[bool] = None
-    dropout: Optional[float] = Field(None, ge=0.0, le=1.0)
-    batch_size: Optional[int] = Field(None, gt=0)
-    learning_rate: Optional[float] = Field(None, gt=0.0)
-    epochs: Optional[int] = Field(None, gt=0)
-    early_stopping_patience: Optional[int] = Field(None, gt=0)
-    sequence_length: Optional[int] = Field(None, gt=0)
+    hidden_size: Optional[int] = Field(128, gt=0)
+    num_layers: Optional[int] = Field(2, gt=0)
+    bidirectional: Optional[bool] = Field(True)
+    dropout: Optional[float] = Field(0.5, ge=0.0, le=1.0)
+    batch_size: Optional[int] = Field(32, gt=0)
+    learning_rate: Optional[float] = Field(0.001, gt=0.0)
+    epochs: Optional[int] = Field(50, gt=0)
+    early_stopping_patience: Optional[int] = Field(10, gt=0)
+    sequence_length: Optional[int] = Field(16, gt=0)
 
 
 class EpochMetrics(BaseModel):
@@ -144,11 +144,11 @@ class WSServerMessage(BaseModel):
 
 
 class EvaluationRequest(BaseModel):
+    sequence_length: Optional[int] = Field(16, gt=0)
     model_name: Optional[str] = Field(
         None,
-        description="Model to evaluate. Defaults to currently loaded model.",
+        description="Model to evaluate. Falls back to the currently loaded model.",
     )
-    sequence_length: Optional[int] = None
 
 
 class ClassMetrics(BaseModel):

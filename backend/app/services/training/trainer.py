@@ -5,7 +5,7 @@ import csv
 import json
 import logging
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -125,7 +125,7 @@ class TrainingService:
                 val_accuracy=round(val_acc, 6),
             )
             history.append(metrics)
-            log_rows.append(asdict(metrics))
+            log_rows.append(metrics.model_dump())
 
             logger.info(
                 "Epoch %d/%d — train_loss: %.4f train_acc: %.4f "

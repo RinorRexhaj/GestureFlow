@@ -47,14 +47,14 @@ print("\nAll checks passed — starting recorder.\n")
 
 from app.services.dataset.recorder import DatasetRecorder
 
-gesture = "swipe_right"   # <-- change this for each gesture
+gesture = "zoom_out"   # <-- change this for each gesture
 
 r = DatasetRecorder()
 saved = r.record_from_webcam(
     gesture_name=gesture,
-    num_samples=15,
-    sequence_length=32,
-    countdown_seconds=1,
+    num_samples=100,
+    sequence_length=16,
+    countdown_seconds=0.5,
     camera_index=0,
 )
 

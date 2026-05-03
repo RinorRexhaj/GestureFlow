@@ -1,5 +1,5 @@
 dataset:
-  sequence_length: 32
+  sequence_length: 16
   num_hands: 1
   # Overlap between consecutive sequences during recording (0 = no overlap)
   recording_overlap: 0
@@ -25,6 +25,10 @@ inference:
   confidence_threshold: 0.6
   # auto | cpu | cuda
   device: auto
+  # Minimum peak L2 landmark-delta (across the sequence window) required to
+  # consider that the hand is making an intentional gesture.  Sequences below
+  # this value are silently ignored without running the LSTM.
+  movement_threshold: 0.15
 
 server:
   host: "0.0.0.0"

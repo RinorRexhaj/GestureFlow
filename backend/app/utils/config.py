@@ -57,6 +57,8 @@ class InferenceConfig(BaseSettings):
 
     confidence_threshold: float = 0.6
     device: str = "auto"
+    # Minimum peak L2 landmark-delta to treat a sequence as containing movement
+    movement_threshold: float = 0.15
 
 
 class ServerConfig(BaseSettings):
